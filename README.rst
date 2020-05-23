@@ -2,13 +2,9 @@
 obs-gphoto
 ==========
 
-Allows connect DSLR cameras with obs-studio through gPhoto on Linux. At now tested only Canon cameras.
-
-.. image:: https://img.shields.io/badge/Donate-PayPal-blue.svg
-    :target: https://www.paypal.me/AeternusAtterratio
-.. image:: https://img.shields.io/badge/Donate-YaMoney-orange.svg
-    :target: https://money.yandex.ru/to/410011005689134
-
+Forked from `https://github.com/dunkelstern/obs-gphoto`, which was forked from
+`https://github.com/Atterratio/obs-gphoto.git`. Not sure if the upstream is still
+active.
 
 ------
 v0.4.0
