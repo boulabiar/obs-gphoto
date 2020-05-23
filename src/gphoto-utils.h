@@ -7,6 +7,7 @@ void property_cam_list(CameraList *cam_list, obs_property_t *prop);
 void gphoto_capture_preview(Camera *camera, GPContext *context, int width, int height, uint8_t *texture_data);
 void gphoto_capture(Camera *camera, GPContext *context, int width, int height, uint8_t *texture_data);
 int gphoto_cam_list(CameraList *cam_list, GPContext *context);
+void populate_config_names(struct preview_data *data);
 
 int cancel_autofocus(Camera *camera, GPContext *context);
 

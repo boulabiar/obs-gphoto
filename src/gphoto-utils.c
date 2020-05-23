@@ -113,12 +113,9 @@ void gphoto_capture_preview(Camera *camera, GPContext *context, int width, int h
         }
     }
 
-    if(image_data){
-        free((void *)image_data);
-    }
-    if(cam_file){
-        //TODO: SIGSEGV here, can't understand why!
-        //gp_file_free(cam_file);
+    // According to libgphoto2, freeing cam_file frees image data as well.
+    if(cam_file) {
+        gp_file_free(cam_file);
     }
 }
 
@@ -498,4 +495,19 @@ int create_manualfocus_property(obs_properties_t *props, obs_data_t *settings, C
         gp_widget_free(widget);
     }
     return ret;
+}
+
+void populate_config_names(struct preview_data *data) {
+    for(int i=0; i < gp_list_count(data->config_list); i++) {
+        const char *name;
+        gp_list_get_name(data->config_list, i, &name);
+
+        if (strcmp(name, "f-number") == 0) {
+            data->aperture_config_name = "f-number";
+            blog(LOG_DEBUG, "detected aperture config key 'f-number'");
+        } else if (strcmp(name, "aperture") == 0) {
+            data->aperture_config_name = "aperture";
+            blog(LOG_DEBUG, "detected aperture config key 'aperture'");
+        }
+    }
 }

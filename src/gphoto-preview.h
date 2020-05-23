@@ -18,6 +18,9 @@ struct preview_data {
     uint32_t height;
 
     CameraList *cam_list;
+    CameraList *config_list;
     Camera *camera;
     GPContext *gp_context;
+
+    const char* aperture_config_name;
 };

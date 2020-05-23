@@ -56,10 +56,15 @@ static obs_properties_t *capture_properties(void *vptr){
             pthread_mutex_lock(&data->camera_mutex);
             create_autofocus_property(props, settings, data->camera, data->gp_context);
             create_manualfocus_property(props, settings, data->camera, data->gp_context);
+
             create_obs_property_from_camera_config(props, settings, obs_module_text("Shutter Speed"),
                                                    data->camera, data->gp_context, "shutterspeed");
-            create_obs_property_from_camera_config(props, settings, obs_module_text("Aperture"),
-                                                   data->camera, data->gp_context, "aperture");
+
+            if (strcmp(data->aperture_config_name, "") != 0) {
+                create_obs_property_from_camera_config(props, settings, obs_module_text("Aperture"),
+                                                       data->camera, data->gp_context, (char*) data->aperture_config_name);
+            }
+
             create_obs_property_from_camera_config(props, settings, obs_module_text("ISO"),
                                                    data->camera, data->gp_context, "iso");
             create_obs_property_from_camera_config(props, settings, obs_module_text("White balance"),
@@ -130,6 +135,12 @@ static void capture_init(void *vptr){
             if (gp_camera_init(data->camera, data->gp_context) < GP_OK) {
                 blog(LOG_WARNING, "Can't init camera.\n");
             } else {
+                if (gp_camera_list_config(data->camera, data->config_list, data->gp_context) != GP_OK) {
+                    blog(LOG_WARNING, "Could not populate configuration list.\n");
+                }
+
+                populate_config_names(data);
+
                 if (gp_camera_capture_preview(data->camera, cam_file, data->gp_context) < GP_OK) {
                     blog(LOG_WARNING, "Can't capture preview.\n");
                 } else {
@@ -153,8 +164,9 @@ static void capture_init(void *vptr){
         }
     }
 
-    if(image_data){
-        free((void *)image_data);
+    // According to libphoto2, freeing cam_file frees image data as well.
+    if(cam_file) {
+        gp_file_free(cam_file);
     }
 }
 
@@ -222,6 +234,10 @@ static void capture_update(void *vptr, obs_data_t *settings){
     if (strcmp(changed, "auto_prop") == 0) {
         pthread_mutex_lock(&data->camera_mutex);
         set_camera_config(settings, data->camera, data->gp_context);
+        pthread_mutex_unlock(&data->camera_mutex);
+        capture_terminate(data);
+        pthread_mutex_lock(&data->camera_mutex);
+        capture_init(data);
         pthread_mutex_unlock(&data->camera_mutex);
     }
 }
@@ -306,11 +322,13 @@ static void *capture_create(obs_data_t *settings, obs_source_t *source){
     data->gp_context = gp_context_new();
 
     gp_list_new(&data->cam_list);
+    gp_list_new(&data->config_list);
     gphoto_cam_list(data->cam_list, data->gp_context);
 
     data->camera_name = obs_data_get_string(settings, "camera_name");
     data->fps = obs_data_get_int(settings, "fps");
     data->autofocus = obs_data_get_bool(settings, "autofocusdrive");
+    data->aperture_config_name = "";
 
     #if HAVE_UDEV
     gphoto_init_udev();
@@ -333,6 +351,7 @@ static void capture_destroy(void *vptr) {
     pthread_mutex_destroy(&data->camera_mutex);
     gp_context_unref(data->gp_context);
     gp_list_free(data->cam_list);
+    gp_list_free(data->config_list);
 
     #if HAVE_UDEV
     signal_handler_t *sh = gphoto_get_udev_signalhandler();
